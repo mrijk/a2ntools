@@ -1,46 +1,21 @@
+use serde::{Deserialize, Serialize};
+use serde_json::Result;
+
 use clap::Parser;
 
 use std::fs::File;
-use std::io::{self, Read, BufReader};
+use std::io::{self, BufReader};
 use std::str;
 
 use std::path::PathBuf;
 
-use byteorder::{BigEndian, ReadBytesExt};
-
 use utf16string::{WStr};
 
-fn read_u8(reader: &mut BufReader<File>) -> u8 {
-    reader.read_u8().unwrap()
-}
-
-fn read_u16(reader: &mut BufReader<File>) -> u16 {
-    reader.read_u16::<BigEndian>().unwrap()
-}
-
-fn read_u32(reader: &mut BufReader<File>) -> u32 {
-    reader.read_u32::<BigEndian>().unwrap()
-}
-
+mod helpers;
+use crate::helpers::{read_unicode_string_from_reader, read_u16, read_u32, read_bool, read_u8};
 
 fn read_version(reader: &mut BufReader<File>) -> u32 {
     read_u32(reader)
-}
-
-fn read_unicode_string_from_reader(reader: &mut BufReader<File>) -> io::Result<String> {
-    let len = read_u32(reader) - 1;
-
-    let mut buffer = Vec::new();
-    reader.take(2 * len as u64).read_to_end(&mut buffer)?;
-
-    let _ = read_u16(reader);
- 
-    // Convert the binary data to a Unicode string using the appropriate encoding
-
-    match str::from_utf8(&buffer) {
-        Ok(s) => Ok(s.to_string()),
-        Err(e) => Err(io::Error::new(io::ErrorKind::InvalidData, e)),
-    }
 }
 
 fn dump_bool_field(key: &str, value: u8) {
@@ -73,18 +48,28 @@ fn close_json() {
     println!("}}");
 }
 
+#[derive(Serialize, Deserialize)]
+struct ActionEvent {
+    expanded: bool,
+    enabled: bool,
+    with_dialog: bool,
+    dialog_options: u8
+}
+
 fn read_action_event(reader: &mut BufReader<File>) {
-    let expanded = read_u8(reader);
-    let enabled = read_u8(reader);
-    let with_dialog = read_u8(reader);
+    let expanded = read_bool(reader);
+    let enabled = read_bool(reader);
+    let with_dialog = read_bool(reader);
     let dialog_options =read_u8(reader);
 
-    open_json();
-    dump_bool_field("expanded", expanded);
-    dump_bool_field("enabled", enabled);
-    dump_u8_field("with_dialog", with_dialog);
-    println!("\"{}\": {}", "dialog_optons", dialog_options);
-    close_json();
+    let action_event = ActionEvent{
+        expanded: expanded,
+        enabled: enabled,
+        with_dialog: with_dialog,
+        dialog_options: dialog_options
+    };
+
+    println!("{}", serde_json::to_string(&action_event).unwrap());
 }
 
 fn read_action(reader: &mut BufReader<File>) {
@@ -96,7 +81,6 @@ fn read_action(reader: &mut BufReader<File>) {
     let s1 = WStr::from_utf16be(name.as_bytes()).unwrap().to_utf8();
     let expanded = read_u8(reader);
     let nr_of_children = read_u32(reader);
-
 
     open_json();
     dump_u16_field("index", index);

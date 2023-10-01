@@ -10,4 +10,6 @@ edition = "2018"
 byteorder = "1"
 bytestream = "0.4"
 clap = { version = "4.0", features = ["derive"] }
+serde = { version = "1.0.188", features = ["derive"] }
+serde_json = "1.0.107"
 utf16string = "0.2"
