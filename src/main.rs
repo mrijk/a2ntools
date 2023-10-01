@@ -18,36 +18,6 @@ fn read_version(reader: &mut BufReader<File>) -> u32 {
     read_u32(reader)
 }
 
-fn dump_bool_field(key: &str, value: u8) {
-    let b =  match value {
-        0 => false,
-        1 => true,
-        _ => panic!("Oh no!")
-    };
-    println!("\"{}\": {},", key, b);
-}
-
-
-fn dump_u8_field(key: &str, value: u8) {
-    println!("\"{}\": {},", key, value);
-}
-
-fn dump_u16_field(key: &str, value: u16) {
-    println!("\"{}\": {},", key, value);
-}
-
-fn dump_u32_field(key: &str, value: u32) {
-    println!("\"{}\": {},", key, value);
-}
-
-fn open_json() {
-    println!("{{");
-}
-
-fn close_json() {
-    println!("}}");
-}
-
 #[derive(Serialize, Deserialize)]
 struct ActionEvent {
     expanded: bool,
@@ -56,50 +26,54 @@ struct ActionEvent {
     dialog_options: u8
 }
 
-fn read_action_event(reader: &mut BufReader<File>) {
-    let expanded = read_bool(reader);
-    let enabled = read_bool(reader);
-    let with_dialog = read_bool(reader);
-    let dialog_options =read_u8(reader);
-
-    let action_event = ActionEvent{
-        expanded: expanded,
-        enabled: enabled,
-        with_dialog: with_dialog,
-        dialog_options: dialog_options
-    };
-
-    println!("{}", serde_json::to_string(&action_event).unwrap());
+fn read_action_event(reader: &mut BufReader<File>) -> ActionEvent {
+    ActionEvent{
+        expanded: read_bool(reader),
+        enabled: read_bool(reader),
+        with_dialog: read_bool(reader),
+        dialog_options: read_u8(reader)
+    }
 }
 
-fn read_action(reader: &mut BufReader<File>) {
+#[derive(Serialize, Deserialize)]
+struct Action {
+    index: u16,
+    shift_key: bool,
+    command_key: bool,
+    color_index: u16,
+    name: String,
+    expanded: bool,
+    action_events: Vec<ActionEvent>
+}
+
+fn read_action(reader: &mut BufReader<File>) -> Action {
     let index = read_u16(reader);
-    let shift_key = read_u8(reader);
-    let command_key = read_u8(reader);
+    let shift_key = read_bool(reader);
+    let command_key = read_bool(reader);
     let color_index = read_u16(reader);
     let name = read_unicode_string_from_reader(reader).unwrap();
     let s1 = WStr::from_utf16be(name.as_bytes()).unwrap().to_utf8();
-    let expanded = read_u8(reader);
+    let expanded = read_bool(reader);
     let nr_of_children = read_u32(reader);
 
-    open_json();
-    dump_u16_field("index", index);
-    dump_u8_field("shift_key", shift_key);
-    dump_u8_field("command_key", command_key);
-    dump_u16_field("color_index", color_index);
-    println!("\"name\": \"{}\",", s1);
-    dump_bool_field("expanded", expanded);
-    dump_u32_field("nor_of_children", nr_of_children);
-    println!("\"action\": [");
-    // for _ in 0..nr_of_children-1 {
-        read_action_event(reader);
-        // println!(",");
-    // }
-    // read_action_event(reader);
-    println!("]");
-    close_json();
+    Action{
+        index,
+        shift_key,
+        command_key,
+        color_index,
+        name: s1,
+        expanded,
+        action_events: vec![read_action_event(reader)]
+    }
 }
 
+#[derive(Serialize, Deserialize)]
+struct ActionFile{
+    version: u32,
+    name: String,
+    expanded: bool,
+    actions: Vec<Action>
+}
 
 #[derive(Parser)]
 struct Cli {
@@ -121,21 +95,23 @@ fn main() -> io::Result<()> {
 
     let s1 = WStr::from_utf16be(name.as_bytes()).unwrap().to_utf8();
 
-    let expanded = read_u8(&mut reader);
+    let expanded = read_bool(&mut reader);
 
     let nr_of_actions = read_u32(&mut reader);
 
-    println!("{{");
-    println!("\"version\": {},", version);
-    println!("\"name\": \"{}\",", s1);
-    dump_bool_field("expanded", expanded);
-    println!("\"nr_of_actions\": {},", nr_of_actions,);
-    println!("\"action\": [");
+    let mut actions = vec![];
     for _ in 0..nr_of_actions {
-        read_action(&mut reader)
+        actions.push(read_action(&mut reader));
     }
-    println!("]");
-    println!("}}");
+
+    let action_file = ActionFile{
+        version,
+        name: s1,
+        expanded,
+        actions,
+    };
+
+    println!("{}", serde_json::to_string(&action_file).unwrap());
 
     Ok(())
 }
