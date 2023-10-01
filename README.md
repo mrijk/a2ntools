@@ -1,2 +1,4 @@
 # a2ntools
-Convert Photoshop action files
+Several tools to convert Photoshop action files:
+
+- display an .atn file as json
