@@ -33,12 +33,7 @@ struct ActionEvent {
     has_descriptor: bool,
 }
 
-fn read_action_event(reader: &mut BufReader<File>) -> ActionEvent {
-    let expanded = read_bool(reader);
-    let enabled = read_bool(reader);
-    let with_dialog = read_bool(reader);
-    let dialog_options = read_u8(reader);
-
+fn read_event_name(reader: &mut BufReader<File>) -> String {
     let event_name = match read_four_byte_string(reader) {
         Ok(s) => match s.as_str() {
             "TEXT" => read_string(reader).unwrap(),
@@ -47,10 +42,20 @@ fn read_action_event(reader: &mut BufReader<File>) -> ActionEvent {
         },
         Err(e) => panic!("diaaster")
     };
+    event_name
+}
+
+fn read_action_event(reader: &mut BufReader<File>) -> ActionEvent {
+    let expanded = read_bool(reader);
+    let enabled = read_bool(reader);
+    let with_dialog = read_bool(reader);
+    let dialog_options = read_u8(reader);
+
+    let event_name = read_event_name(reader);
 
     let tmp = read_string(reader).unwrap();
 
-    let has_descriptor = (read_u32(reader) != 0);
+    let has_descriptor = read_u32(reader) != 0;
 
     let class_id_1 = read_unicode_string(reader).unwrap();
     let class_id_2 = read_token_or_string(reader).unwrap();
@@ -66,6 +71,13 @@ fn read_action_event(reader: &mut BufReader<File>) -> ActionEvent {
         has_descriptor
     }
 }
+
+fn read_action_events(reader: &mut BufReader<File>) -> Vec<ActionEvent> {
+    let _nr_of_action_events = read_u32(reader);
+
+    (0..1).map(|_| read_action_event(reader)).collect()
+}
+
 
 #[derive(Serialize, Deserialize)]
 struct Action {
@@ -85,7 +97,7 @@ fn read_action(reader: &mut BufReader<File>) -> Action {
     let color_index = read_u16(reader);
     let name = read_name(reader);
     let expanded = read_bool(reader);
-    let _nr_of_children = read_u32(reader);
+    let action_events = read_action_events(reader);
 
     Action{
         index,
@@ -94,7 +106,7 @@ fn read_action(reader: &mut BufReader<File>) -> Action {
         color_index,
         name,
         expanded,
-        action_events: vec![read_action_event(reader)]
+        action_events
     }
 }
 
@@ -112,9 +124,17 @@ struct ActionFile{
     actions: Vec<Action>
 }
 
+#[derive(Serialize, Deserialize)]
+struct VersionOnly{
+    version: u32
+}
+
 #[derive(Parser)]
+#[command(author, version, about, long_about = None)]
 struct Cli {
-    path: Option<PathBuf>
+    path: Option<PathBuf>,
+    #[arg(short, long, default_value_t=false)]
+    version_only: bool,
 }
 
 fn main() -> io::Result<()> {
@@ -127,6 +147,12 @@ fn main() -> io::Result<()> {
     let mut reader = BufReader::new(file);
 
     let version = read_version(&mut reader);
+    if args.version_only {
+        let version_only = VersionOnly{version};
+        println!("{}", serde_json::to_string(&version_only).unwrap());
+        return Ok({});
+    }
+
     let name = read_name(&mut reader);
     let expanded = read_bool(&mut reader);
     let actions = read_actions(&mut reader);
