@@ -9,6 +9,7 @@ use std::str;
 use std::path::PathBuf;
 
 mod readers;
+use readers::version_7::read_version_7_action_file;
 use readers::version_16::read_version_16_action_file;
 use readers::helpers::{read_u32};
 
@@ -45,7 +46,11 @@ fn main() -> io::Result<()> {
         return Ok({});
     }
 
-    read_version_16_action_file(&mut reader);
-
+    match version {
+        7 => read_version_7_action_file(&mut reader),
+        16 => read_version_16_action_file(&mut reader),
+        _ => panic!("Unknown version {}", version)
+    }
+    
     Ok(())
 }

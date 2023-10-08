@@ -21,11 +21,24 @@ struct Item {
 }
 
 #[derive(Serialize, Deserialize)]
+struct StringStructure {
+    value: String,
+    foo: u32,
+}
+
+#[derive(Serialize, Deserialize)]
+enum Foo {
+    Item(Item),
+    StringStructure(StringStructure,)
+}
+
+
+#[derive(Serialize, Deserialize)]
 struct Descriptor {
     class_id_1: String,
     class_id_2: String,
     nr_of_items: u32,
-    items: Vec<Item>,
+    items: Vec<Foo>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,16 +64,18 @@ fn read_event_name(reader: &mut BufReader<File>) -> String {
     event_name
 }
 
-fn read_item(reader: &mut BufReader<File>) -> Item {
+fn read_item(reader: &mut BufReader<File>) -> Foo {
     let key = read_token_or_string(reader).unwrap();
-    Item{key}
+    Foo::Item(Item{key})
 }
 
 fn read_descriptor(reader: &mut BufReader<File>) -> Descriptor {
     let class_id_1 = read_unicode_string(reader).unwrap();
     let class_id_2 = read_token_or_string(reader).unwrap();
     let nr_of_items = read_u32(reader);
-    let items = vec![read_item(reader)];
+    let foo = StringStructure{value: String::new(), foo: 666};
+    let test = Foo::StringStructure(foo);
+    let items = vec![read_item(reader), test];
 
     Descriptor {
         class_id_1,
