@@ -6,7 +6,7 @@ use std::str;
 
 use utf16string::WStr;
 
-use crate::readers::helpers::{read_unicode_string, read_u16, read_u32, read_bool, read_u8, read_four_byte_string, read_string, read_token_or_string};
+use crate::readers::helpers::{read_unicode_string, read_u16, read_u32, read_bool, read_u8, read_four_byte_string, read_string, read_token_or_string, MySerializable};
 
 
 fn read_name(reader: &mut BufReader<File>) -> String {
@@ -157,24 +157,22 @@ fn read_actions(reader: &mut BufReader<File>) -> Vec<Action> {
 }
 
 #[derive(Serialize, Deserialize)]
-struct ActionFile{
+pub struct ActionFile{
     version: u32,
     name: String,
     expanded: bool,
     actions: Vec<Action>
 }
 
-pub fn read_version_16_action_file(reader: &mut BufReader<File>) {
+pub fn read_version_16_action_file(reader: &mut BufReader<File>) -> Box<dyn MySerializable> {
     let name = read_name(reader);
     let expanded = read_bool(reader);
     let actions = read_actions(reader);
 
-    let action_file = ActionFile{
+    Box::new(ActionFile{
         version: 16,
         name,
         expanded,
         actions,
-    };
-
-    println!("{}", serde_json::to_string(&action_file).unwrap());
+    })
 }

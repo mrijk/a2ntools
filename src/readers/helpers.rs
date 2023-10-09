@@ -2,6 +2,10 @@ use std::fs::File;
 use std::io::{self, Read, BufReader};
 use std::str;
 
+use serde_json::Value;
+use serde_yaml::{Value as YamlValue};
+use serde::{Deserialize, Serialize};
+
 use byteorder::{BigEndian, ReadBytesExt};
 
 pub fn read_u8(reader: &mut BufReader<File>) -> u8 {
@@ -71,4 +75,20 @@ fn read_unicode_string_with_len(reader: &mut BufReader<File>, len: u32) -> io::R
 pub fn read_unicode_string(reader: &mut BufReader<File>) -> io::Result<String> {
     let len = read_u32(reader) - 1;
     read_unicode_string_with_len(reader, len)
+}
+
+
+pub trait MySerializable {
+    fn to_json(&self) -> Value;
+    fn to_yaml(&self) -> YamlValue;
+}
+
+impl<T> MySerializable for T where T: Serialize + Deserialize<'static> {
+    fn to_json(&self) -> Value {
+        serde_json::to_value(self).expect("JSON serialization failed")
+    }
+
+    fn to_yaml(&self) -> YamlValue {
+        serde_yaml::to_value(self).expect("YAML serialization failed")
+    }
 }

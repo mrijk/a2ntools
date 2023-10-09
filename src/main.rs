@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use clap::Parser;
+use clap::{Parser};
 
 use std::fs::File;
 use std::io::{self, BufReader};
@@ -28,6 +28,8 @@ struct Cli {
     path: Option<PathBuf>,
     #[arg(short, long, default_value_t=false)]
     version_only: bool,
+    #[clap(short, long, default_value="json")]
+    format: String
 }
 
 fn main() -> io::Result<()> {
@@ -46,10 +48,16 @@ fn main() -> io::Result<()> {
         return Ok({});
     }
 
-    match version {
+    let result = match version {
         7 => read_version_7_action_file(&mut reader),
         16 => read_version_16_action_file(&mut reader),
         _ => panic!("Unknown version {}", version)
+    };
+
+    match args.format.as_str() {
+        "json" => println!("{}", serde_json::to_string_pretty(&result.to_json()).unwrap()),
+        "yaml" => println!("{}", serde_yaml::to_string(&result.to_yaml()).unwrap()),
+        _ => panic!("Unkown format {}", args.format)
     }
     
     Ok(())
