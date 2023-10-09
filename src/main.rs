@@ -1,6 +1,4 @@
-use serde::{Deserialize, Serialize};
-
-use clap::{Parser};
+use clap::Parser;
 
 use std::fs::File;
 use std::io::{self, BufReader};
@@ -11,16 +9,13 @@ use std::path::PathBuf;
 mod readers;
 use readers::version_7::read_version_7_action_file;
 use readers::version_16::read_version_16_action_file;
-use readers::helpers::{read_u32};
+use readers::version_only::read_version_only_action_file;
+use readers::helpers::read_u32;
 
 fn read_version(reader: &mut BufReader<File>) -> u32 {
     read_u32(reader)
 }
 
-#[derive(Serialize, Deserialize)]
-struct VersionOnly{
-    version: u32
-}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -42,15 +37,11 @@ fn main() -> io::Result<()> {
     let mut reader = BufReader::new(file);
 
     let version = read_version(&mut reader);
-    if args.version_only {
-        let version_only = VersionOnly{version};
-        println!("{}", serde_json::to_string(&version_only).unwrap());
-        return Ok({});
-    }
 
-    let result = match version {
-        7 => read_version_7_action_file(&mut reader),
-        16 => read_version_16_action_file(&mut reader),
+    let result = match (args.version_only, version) {
+        (true, _) => read_version_only_action_file(version),
+        (false, 7) => read_version_7_action_file(&mut reader),
+        (false, 16) => read_version_16_action_file(&mut reader),
         _ => panic!("Unknown version {}", version)
     };
 
