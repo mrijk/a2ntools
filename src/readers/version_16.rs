@@ -118,13 +118,26 @@ fn read_action_events(reader: &mut BufReader<File>) -> Vec<ActionEvent> {
     (0..1).map(|_| read_action_event(reader)).collect()
 }
 
+fn color_index_value_to_string(color_index: u16) -> String {
+    String::from(match color_index {
+        0 => "None",
+        1 => "Red",
+        2 => "Orange",
+        3 => "Yellow",
+        4 => "Green",
+        5 => "Blue",
+        6 => "Violet",
+        7 => "Gray",  
+        _ => "Unknown"
+    })
+}
 
 #[derive(Serialize, Deserialize)]
 struct Action {
     index: u16,
     shift_key: bool,
     command_key: bool,
-    color_index: u16,
+    color_index: String,
     name: String,
     expanded: bool,
     action_events: Vec<ActionEvent>
@@ -134,7 +147,7 @@ fn read_action(reader: &mut BufReader<File>) -> Action {
     let index = read_u16(reader);
     let shift_key = read_bool(reader);
     let command_key = read_bool(reader);
-    let color_index = read_u16(reader);
+    let color_index = color_index_value_to_string(read_u16(reader));
     let name = read_name(reader);
     let expanded = read_bool(reader);
     let action_events = read_action_events(reader);

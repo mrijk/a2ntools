@@ -3,16 +3,16 @@ use std::io::{self, Read, BufReader};
 use std::str;
 
 use serde_json::Value;
-use serde_yaml::{Value as YamlValue};
+use serde_yaml::Value as YamlValue;
 use serde::{Deserialize, Serialize};
 
 use byteorder::{BigEndian, ReadBytesExt};
 
-pub fn read_u8(reader: &mut BufReader<File>) -> u8 {
+pub fn read_u8(reader: &mut dyn Read) -> u8 {
     reader.read_u8().unwrap()
 }
 
-pub fn read_bool(reader: &mut BufReader<File>) -> bool {
+pub fn read_bool(reader: &mut dyn Read) -> bool {
     match read_u8(reader) {
         0 => false,
         1 => true,
@@ -20,11 +20,11 @@ pub fn read_bool(reader: &mut BufReader<File>) -> bool {
     }
 }
 
-pub fn read_u16(reader: &mut BufReader<File>) -> u16 {
+pub fn read_u16(reader: &mut dyn Read) -> u16 {
     reader.read_u16::<BigEndian>().unwrap()
 }
 
-pub fn read_u32(reader: &mut BufReader<File>) -> u32 {
+pub fn read_u32(reader: &mut dyn Read) -> u32 {
     reader.read_u32::<BigEndian>().unwrap()
 }
 
@@ -90,5 +90,44 @@ impl<T> MySerializable for T where T: Serialize + Deserialize<'static> {
 
     fn to_yaml(&self) -> YamlValue {
         serde_yaml::to_value(self).expect("YAML serialization failed")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_bool() {
+        let mut reader = &[0u8] as &[u8];
+        assert_eq!(read_bool(&mut reader), false);
+
+        let mut reader = &[1u8] as &[u8];
+        assert_eq!(read_bool(&mut reader), true);
+    }
+
+    #[test]
+    #[should_panic(expected = "Oh no!")]
+    fn test_read_invalid_bool() {
+        let mut reader = &[42u8] as &[u8];
+        read_bool(&mut reader);
+    }
+
+    #[test]
+    fn test_read_u8() {
+        let mut reader = &[42u8] as &[u8];
+        assert_eq!(read_u8(&mut reader), 42);
+    }
+
+    #[test]
+    fn test_read_u16() {
+        let mut reader = &[0u8, 42u8] as &[u8];
+        assert_eq!(read_u16(&mut reader), 42);
+    }
+
+    #[test]
+    fn test_read_u32() {
+        let mut reader = &[0u8, 0u8, 0u8, 42u8] as &[u8];
+        assert_eq!(read_u32(&mut reader), 42);
     }
 }

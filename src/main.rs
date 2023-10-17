@@ -10,6 +10,7 @@ mod readers;
 use readers::version_7::read_version_7_action_file;
 use readers::version_16::read_version_16_action_file;
 use readers::version_only::read_version_only_action_file;
+use readers::unversioned::read_unversioned_action_file;
 use readers::helpers::read_u32;
 
 fn read_version(reader: &mut BufReader<File>) -> u32 {
@@ -42,7 +43,7 @@ fn main() -> io::Result<()> {
         (true, _) => read_version_only_action_file(version),
         (false, 7) => read_version_7_action_file(&mut reader),
         (false, 16) => read_version_16_action_file(&mut reader),
-        _ => panic!("Unknown version {}", version)
+        (false, _) => read_unversioned_action_file(&mut reader),
     };
 
     match args.format.as_str() {
