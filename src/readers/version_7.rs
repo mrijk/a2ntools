@@ -4,7 +4,9 @@ use std::fs::File;
 use std::io::BufReader;
 use std::str;
 
-use crate::readers::helpers::{read_u32, read_bool, read_u8, read_four_byte_string, read_string, read_token_or_string, MySerializable};
+use crate::readers::helpers::{read_u32, read_bool, read_u8, read_four_byte_string, read_string, read_token_or_string};
+
+use super::serializable::MySerializable;
 
 
 #[derive(Serialize, Deserialize)]

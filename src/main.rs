@@ -1,7 +1,7 @@
 use clap::Parser;
 
 use std::fs::File;
-use std::io::{self, BufReader};
+use std::io::{self, BufReader, Read};
 use std::str;
 
 use std::path::PathBuf;
@@ -13,7 +13,7 @@ use readers::version_only::read_version_only_action_file;
 use readers::unversioned::read_unversioned_action_file;
 use readers::helpers::read_u32;
 
-fn read_version(reader: &mut BufReader<File>) -> u32 {
+fn read_version(reader: &mut dyn Read) -> u32 {
     read_u32(reader)
 }
 
@@ -53,4 +53,20 @@ fn main() -> io::Result<()> {
     }
     
     Ok(())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use super::*;
+
+    #[test]
+    fn test_version() {
+        let data: Vec<u8> = vec![0x00, 0x00, 0x00, 0x10];
+        let mut reader = Cursor::new(data);
+
+        assert_eq!(read_version(&mut reader), 16);
+    }
 }

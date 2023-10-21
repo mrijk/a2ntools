@@ -4,7 +4,9 @@ use std::fs::File;
 use std::io::{self, Read, BufReader};
 use std::str;
 
-use crate::readers::helpers::{read_u16, MySerializable};
+use crate::readers::helpers::{read_u16};
+
+use super::serializable::MySerializable;
 
 pub fn read_string(reader: &mut BufReader<File>) -> io::Result<String> {
     let len = read_u16(reader);

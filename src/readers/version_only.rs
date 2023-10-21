@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use crate::readers::helpers::MySerializable;
+
+use super::serializable::MySerializable;
+
 
 #[derive(Serialize, Deserialize)]
 struct VersionOnly{

@@ -4,14 +4,13 @@ use std::fs::File;
 use std::io::BufReader;
 use std::str;
 
-use utf16string::WStr;
+use crate::readers::helpers::{read_unicode_string, read_u16, read_u32, read_bool, read_u8, read_four_byte_string, read_string, read_token_or_string};
 
-use crate::readers::helpers::{read_unicode_string, read_u16, read_u32, read_bool, read_u8, read_four_byte_string, read_string, read_token_or_string, MySerializable};
+use super::serializable::MySerializable;
 
 
 fn read_name(reader: &mut BufReader<File>) -> String {
-    let name = read_unicode_string(reader).unwrap();
-    WStr::from_utf16be(name.as_bytes()).unwrap().to_utf8()
+    read_unicode_string(reader).unwrap()
 }
 
 
